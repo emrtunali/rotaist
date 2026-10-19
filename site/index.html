@@ -5,82 +5,135 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Rotaist</title>
   <meta name="description" content="Traffic-aware last-mile delivery planning for Istanbul — replay a real January 2025 day.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><path d='M8 1l7 7-7 7-7-7z' fill='%2338bdf8'/></svg>">
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
   <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet">
   <link href="style.css" rel="stylesheet">
 </head>
 <body>
   <header class="top">
-    <div class="brand"><span class="logo">◆</span> Rotaist <span class="tag">Istanbul last-mile, traffic-aware</span></div>
-    <nav><a href="#map">Replay</a><a href="#results">Results</a><a href="#how">How it works</a>
-      <a href="https://github.com/emrtunali/rotaist">GitHub</a></nav>
+    <a class="brand" href="#"><span class="logo">◆</span> Rotaist <span class="tag">Istanbul last-mile, traffic-aware</span></a>
+    <nav><a href="#replay">Replay</a><a href="#results">Results</a><a href="#how">How it works</a>
+      <a href="https://github.com/emrtunali/rotaist">GitHub ↗</a></nav>
   </header>
 
-  <section id="map" class="stage">
-    <div id="mapview"></div>
-    <aside class="panel">
-      <div class="row">
-        <label>Day <select id="day"></select></label>
-        <span class="muted" id="dayinfo"></span>
+  <section class="hero">
+    <div class="hero-in">
+      <p class="eyebrow">Real İBB traffic · 250 orders/day · 22 days back-tested</p>
+      <h1>Same orders. Same vans.<br><span class="grad-text" id="heroHours">Fewer driver hours.</span></h1>
+      <p class="sub">Most route planners assume the city moves at one speed all day. Rotaist forecasts
+        tomorrow's Istanbul traffic hour by hour and plans around the rush — then we drive every plan
+        on the traffic that really happened.</p>
+      <div class="stats" id="heroStats"></div>
+      <a class="cta" href="#replay">Watch a real day ↓</a>
+    </div>
+  </section>
+
+  <section id="replay" class="replay">
+    <div class="controls">
+      <label class="ctl">Day <select id="day"></select></label>
+      <button id="play" class="play" aria-label="Play">▶</button>
+      <div class="scrub">
+        <input id="time" type="range" min="28800" max="79200" step="60" value="61200">
       </div>
-      <div class="plans" id="plans"></div>
-      <div class="clock">
-        <button id="play" aria-label="Play">▶</button>
-        <input id="time" type="range" min="28800" max="79200" step="60" value="32400">
-        <span id="clock" class="mono">09:00</span>
-      </div>
-      <div class="row small">
-        <label><input type="checkbox" id="showTraffic" checked> Traffic</label>
-        <label><input type="radio" name="tsrc" value="ratio" checked> actual</label>
-        <label><input type="radio" name="tsrc" value="forecast"> forecast</label>
-        <select id="speed"><option value="60">1 min/s</option><option value="300" selected>5 min/s</option>
-          <option value="900">15 min/s</option></select>
-      </div>
-      <table class="kpi" id="kpi"></table>
-      <div class="live" id="live"></div>
-      <div class="legend">
-        <span><i style="background:#22c55e"></i>delivered on time</span>
-        <span><i style="background:#ef4444"></i>late</span>
-        <span><i style="background:#64748b"></i>waiting</span>
-        <span class="grad">congestion <b></b> free ↔ jammed</span>
-      </div>
-    </aside>
+      <span id="clock" class="clock mono">17:00</span>
+      <select id="speed" class="ctl" aria-label="Playback speed">
+        <option value="120">2 min/s</option><option value="480" selected>8 min/s</option><option value="1200">20 min/s</option>
+      </select>
+      <div class="seg" id="viewSeg"><button data-v="2" class="on">Compare</button><button data-v="1">Single</button></div>
+      <div class="seg" id="srcSeg"><button data-s="ratio" class="on">Actual traffic</button><button data-s="forecast">Forecast</button></div>
+    </div>
+    <div class="maps" id="maps"></div>
+    <div class="timeline">
+      <canvas id="timeline" aria-label="Timeline: network speed and late deliveries over the day"></canvas>
+    </div>
+    <div class="legend">
+      <span class="lg-traffic">street speed <b></b> jammed → free flow</span>
+      <span><i class="dot ok"></i>delivered on time</span>
+      <span><i class="dot late"></i>delivered late</span>
+      <span><i class="dot wait"></i>still to deliver</span>
+      <span class="muted">click a stop for its promised vs. real arrival · drag the timeline to scrub</span>
+    </div>
   </section>
 
   <section id="results" class="wrap">
-    <h2>Back-test: plan the evening before, drive on real traffic</h2>
+    <p class="eyebrow">Back-test</p>
+    <h2>Plan the evening before. Drive on real traffic.</h2>
     <p class="lead" id="lead"></p>
-    <div class="cards" id="cards"></div>
+
+    <div class="insights" id="insights"></div>
+
     <div class="grid">
-      <figure><canvas id="chOnTime"></canvas><figcaption>Orders delivered inside their 2-hour slot, by fleet size
-        (mean over held-out January 2025 weekdays).</figcaption></figure>
-      <figure><canvas id="chEta"></canvas><figcaption>How far the promised ETA was from the real arrival
-        (mean absolute error, minutes).</figcaption></figure>
-      <figure><canvas id="chFc"></canvas><figcaption>Day-ahead speed forecast error by hour of day, January 2025
-        (km/h, vehicle-weighted).</figcaption></figure>
-      <figure><canvas id="chDays"></canvas><figcaption>Late minutes per day, every held-out weekday
-        (selected fleet size).</figcaption></figure>
+      <figure class="wide">
+        <div class="fig-head">
+          <div><h3>Better is <em>up and to the left</em></h3>
+            <p>Every dot is one planner on one real January day: driver hours spent vs. minutes delivered late. Rotaist (blue) sits next to the oracle; ignoring traffic (dark grey) falls off the chart.</p></div>
+          <div class="seg small" id="fleetSeg"></div>
+        </div>
+        <div class="chart tall"><canvas id="chScatter"></canvas></div>
+      </figure>
+
+      <figure>
+        <div class="fig-head"><div><h3>How good is the promise?</h3>
+          <p>Real arrival minus the ETA the customer was told. A static free-flow plan is systematically late.</p></div></div>
+        <div class="chart"><canvas id="chEta"></canvas></div>
+      </figure>
+
+      <figure>
+        <div class="fig-head"><div><h3>Driver hours by fleet size</h3>
+          <p>At equal or better punctuality, Rotaist's savings grow as the fleet gets more room to plan.</p></div></div>
+        <div class="chart"><canvas id="chFleet"></canvas></div>
+      </figure>
+
+      <figure class="wide">
+        <div class="fig-head"><div><h3>Four months of Istanbul traffic</h3>
+          <p>Median speed across Kadıköy, Üsküdar and Ataşehir as % of free flow, every hour of every day.
+            The model trains on the left, is tested on January.</p></div></div>
+        <div class="heat-wrap"><canvas id="heat"></canvas><div id="heatTip" class="tip"></div></div>
+        <div class="legend flat"><span class="lg-traffic">jammed <b></b> free flow</span><span><i class="dot" style="background:#1c2538;border-radius:2px"></i>no data</span><span class="muted">hover for details · evening rush at 17–19 h, quiet holidays (29 Oct, 1 Jan)</span></div>
+      </figure>
+
+      <figure>
+        <div class="fig-head">
+          <div><h3>Tomorrow's traffic, predicted tonight</h3>
+            <p>Average street speed on a held-out day: reality vs. forecasts.</p></div>
+          <select id="fcDay" class="ctl"></select>
+        </div>
+        <div class="chart"><canvas id="chFc"></canvas></div>
+      </figure>
+
+      <figure>
+        <div class="fig-head"><div><h3>Day by day</h3>
+          <p>On-time rate on each held-out weekday (5 vans). One bad forecast day is visible — and real.</p></div></div>
+        <div class="chart"><canvas id="chDays"></canvas></div>
+      </figure>
     </div>
   </section>
 
   <section id="how" class="wrap how">
+    <p class="eyebrow">Under the hood</p>
     <h2>How it works</h2>
-    <ol>
-      <li><b>Real traffic.</b> İBB publishes average speed for every ~1 km cell of Istanbul, every hour.
-        Four months (Oct 2024 – Jan 2025) over Kadıköy, Üsküdar and Ataşehir become a day × hour × cell tensor.</li>
-      <li><b>Street network.</b> 33,604 OpenStreetMap street segments inherit the congestion of their cell,
-        so a 50 km/h avenue crawls at 18:00 and flows at 06:00.</li>
-      <li><b>Day-ahead forecast.</b> A gradient-boosted model predicts tomorrow's congestion for every cell and hour
-        using only data up to tonight.</li>
-      <li><b>Time-dependent routing.</b> Rotaist's own ALNS search plans vans on hour-by-hour travel times — it knows
-        that the same 3 km takes twice as long in the evening rush and sequences stops around it.</li>
-      <li><b>Honest back-test.</b> Every plan is driven on the traffic that actually happened that day.</li>
-    </ol>
-    <p class="muted">Orders are synthetic (drawn from real OSM residential floor area); traffic and streets are real.
+    <div class="pipeline">
+      <div class="step"><div class="ico">🚦</div><h4>Real traffic</h4>
+        <p>İBB average speed for every ~1 km cell, every hour — 398 cells × 117 days.</p></div>
+      <div class="arrow">→</div>
+      <div class="step"><div class="ico">🛣️</div><h4>Street network</h4>
+        <p>33,604 OpenStreetMap segments inherit their cell's congestion, hour by hour.</p></div>
+      <div class="arrow">→</div>
+      <div class="step"><div class="ico">🔮</div><h4>Day-ahead forecast</h4>
+        <p>Gradient boosting predicts tomorrow's congestion from data up to tonight.</p></div>
+      <div class="arrow">→</div>
+      <div class="step"><div class="ico">🧠</div><h4>Time-dependent ALNS</h4>
+        <p>Our optimiser knows 3 km takes twice as long at 18:00 and sequences around it.</p></div>
+      <div class="arrow">→</div>
+      <div class="step"><div class="ico">🧪</div><h4>Honest back-test</h4>
+        <p>Every plan is driven on the traffic that actually happened that day.</p></div>
+    </div>
+    <p class="credits muted">Orders are synthetic (drawn from real OSM residential floor area); traffic and streets are real.
       Data: <a href="https://data.ibb.gov.tr">İBB Açık Veri Portalı</a> (İBB Open Data License) ·
       © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a> (ODbL) ·
-      tiles <a href="https://openfreemap.org">OpenFreeMap</a>.</p>
+      tiles <a href="https://openfreemap.org">OpenFreeMap</a> · code <a href="https://github.com/emrtunali/rotaist">MIT</a>.</p>
   </section>
 
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>

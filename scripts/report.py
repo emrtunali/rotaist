@@ -15,7 +15,7 @@ import numpy as np
 
 from rotaist.demand import sample_orders
 from rotaist.experiment import METHODS, World
-from rotaist.forecast import evaluate
+from rotaist.forecast import HOLIDAYS, evaluate
 
 ROOT = Path(__file__).resolve().parents[1]
 RES, SITE = ROOT / "results", ROOT / "site/data"
@@ -131,6 +131,71 @@ def export_day(w: World, run: dict) -> dict:
             "plans": plans}
 
 
+ROAD_CLASSES = {"motorway": 5, "trunk": 4, "primary": 3, "secondary": 2, "tertiary": 1,
+                "motorway_link": 2, "trunk_link": 2, "primary_link": 2, "secondary_link": 1}
+
+
+def roads(w: World) -> dict:
+    """Major streets with their traffic cell, so the web app can colour every street by the hour's congestion."""
+    import osmnx as ox
+    G = ox.load_graphml(ROOT / "data/raw/anadolu_drive.graphml")
+    feats, seen = [], set()
+    for i, (u, v, d) in enumerate(G.edges(data=True)):   # same order as Network.from_graph
+        hw = d.get("highway")
+        hw = hw[0] if isinstance(hw, list) else hw
+        if hw not in ROAD_CLASSES or (min(u, v), max(u, v)) in seen or w.net.cell[i] < 0:
+            continue
+        seen.add((min(u, v), max(u, v)))
+        if "geometry" in d:
+            xy = np.asarray(d["geometry"].coords)
+        else:
+            xy = np.array([[G.nodes[u]["x"], G.nodes[u]["y"]], [G.nodes[v]["x"], G.nodes[v]["y"]]])
+        feats.append([int(w.net.cell[i]), ROAD_CLASSES[hw], np.round(xy, 5).tolist()])
+    return {"cells": len(w.traffic.cells), "roads": feats}
+
+
+def eta_histogram(runs: list[dict], lo: int = -10, hi: int = 60, step: int = 2) -> dict:
+    """Share of orders by (real arrival − promised ETA), per fleet size and planner."""
+    edges = np.arange(lo, hi + step, step)
+    out: dict = {"edges": edges.tolist()}
+    for r in runs:
+        for m, p in r["plans"].items():
+            err = np.array([p["arrivals"][c] - p["promised"][c] for c in p["promised"]]) / 60
+            h = np.histogram(np.clip(err, lo, hi - 1e-6), edges)[0]
+            slot = out.setdefault(str(r["vans"]), {}).setdefault(m, np.zeros(len(edges) - 1))
+            slot += h
+    for vans, rows in out.items():
+        if vans != "edges":
+            for m in rows:
+                rows[m] = np.round(100 * rows[m] / rows[m].sum(), 2).tolist()
+    return out
+
+
+def nan_to_none(a: np.ndarray) -> list:
+    """JSON has no NaN: unobserved values become null."""
+    return np.where(np.isfinite(a), a, None).tolist()
+
+
+def traffic_overview(w: World) -> dict:
+    """Network congestion for every day × hour (heatmap) and forecast-vs-actual curves for test days."""
+    tr = w.traffic
+    with np.errstate(all="ignore"):
+        heat = np.nanmedian(w.ratio, axis=2)
+    test = [d for d in w.test_days]
+    curves = {}
+    for d in test:
+        obs = np.isfinite(w.ratio[d])
+        row = {}
+        for m in ("actual", "model", "hour_of_week", "daily_mean"):
+            r = w.ratio[d] if m == "actual" else w.ratio_for(d, m)
+            kmh = np.where(obs, r * w.ff[None, :], np.nan)
+            with np.errstate(all="ignore"):
+                row[m] = nan_to_none(np.round(np.nanmean(kmh, axis=1), 1))
+        curves[tr.dates[d]] = row
+    return {"dates": tr.dates, "heat": nan_to_none(np.round(heat, 3)), "test_start": tr.dates.index("2025-01-01"),
+            "holidays": sorted(HOLIDAYS), "curves": curves}
+
+
 def markdown(summary: dict) -> str:
     lines = ["# Rotaist — results", "",
              f"Back-test on {summary['backtest_days']} held-out weekdays of January 2025, "
@@ -169,17 +234,21 @@ def main() -> None:
         "wins_vs_ortools_average": paired_wins(runs, "rotaist", "ortools_average"),
         "wins_vs_alns_average": paired_wins(runs, "rotaist", "alns_average"),
         "forecast": fc,
+        "eta_hist": eta_histogram(runs),
         "network": {"nodes": int(len(w.net.node_ids)), "edges": int(len(w.net.u)), "cells": len(tr.cells),
                     "days": len(tr.dates), "median_speed_by_hour": np.round(hourly, 1).tolist()},
         "per_day": [{"date": r["date"], "vans": r["vans"],
                      **{m: {"on_time_pct": p["actual"]["on_time_pct"], "late_minutes": p["actual"]["late_minutes"],
-                            "eta_mae_min": p["eta_mae_min"]} for m, p in r["plans"].items()}} for r in runs],
+                            "eta_mae_min": p["eta_mae_min"], "duty_hours": p["actual"]["duty_hours"]}
+                        for m, p in r["plans"].items()}} for r in runs],
     }
     RES.mkdir(exist_ok=True)
     (RES / "summary.json").write_text(json.dumps(summary, indent=1))
     (RES / "RESULTS.md").write_text(markdown(summary))
     SITE.mkdir(parents=True, exist_ok=True)
     (SITE / "summary.json").write_text(json.dumps(summary))
+    (SITE / "traffic.json").write_text(json.dumps(traffic_overview(w), separators=(",", ":")))
+    (SITE / "roads.json").write_text(json.dumps(roads(w), separators=(",", ":")))
     show = [r for r in runs if r["vans"] == SHOW_VANS] or runs
     # showcase: the day where static planning hurt most, plus a typical day
     show.sort(key=lambda r: r["plans"]["ortools_average"]["actual"]["late_minutes"])

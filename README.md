@@ -13,7 +13,10 @@ ALNS optimiser, and check every plan against the traffic that really happened.
 
 [**▶ Open the live replay**](https://emrtunali.github.io/rotaist/) · [Results](results/RESULTS.md) · [How it works](#how-it-works)
 
-<img src="docs/replay.jpg" alt="Rotaist replay: vans driving a real January 2025 day in Kadıköy, Üsküdar and Ataşehir over the hourly traffic layer" width="100%">
+<img src="docs/replay.gif" alt="Side-by-side replay of Wed 29 Jan 2025 from 15:00 to 22:00: OR-Tools on a typical-traffic matrix (left) vs Rotaist (right), streets coloured by real İBB congestion" width="100%">
+
+<sub>Wed 29 January 2025, 15:00 → 22:00, the same 250 orders. Left: OR-Tools planned on typical traffic. Right: Rotaist.
+Streets are coloured by the congestion İBB actually recorded that hour, and the timeline counts late deliveries.</sub>
 
 </div>
 
@@ -29,6 +32,23 @@ are wrong, and the dispatcher pads the schedule with extra vans and driver hours
 **Rotaist plans with the clock in mind.** It predicts how congested every part of the city will be
 tomorrow, hour by hour. It then sequences stops so that vans cross the slow corridors when they are
 moving and finish the dense neighbourhoods before the rush.
+
+## The web app
+
+[**emrtunali.github.io/rotaist**](https://emrtunali.github.io/rotaist/) shows the results in four views.
+
+* **Side-by-side replay.** Two planners drive the same day on two synced maps. Every major street is coloured by
+  that hour's real congestion, or by the forecast. Delivered routes draw themselves as the vans move, and late
+  stops light up red. A live scoreboard and a timeline track network speed and cumulative late deliveries; you
+  can drag the timeline to scrub through the day.
+* **"Better is up and to the left."** Each planner on each real day is one dot: driver hours against late
+  minutes.
+* **Four months of Istanbul traffic.** A heatmap of every hour of every day, with the training and test split
+  and the holidays visible.
+* **Forecast vs reality, ETA accuracy and fleet size.** These charts show tomorrow's predicted street speeds
+  against what happened, how far real arrivals landed from the promised ETA, and driver hours by fleet size.
+
+<img src="docs/replay.jpg" alt="Replay at 21:30: OR-Tools 6 late deliveries and 39.7 driver hours vs Rotaist 1 late and 36.0 driver hours" width="100%">
 
 ## Highlights
 
@@ -65,9 +85,11 @@ more demand in the evening. Each row is the average over 22 January 2025 weekday
 | 5 | 99.2 % / 40.1 h | 99.5 % / 35.9 h | **−10.5 %** |
 | 6 | 99.4 % / 40.4 h | 99.5 % / 33.6 h | **−16.8 %** |
 
-<img src="docs/results.jpg" alt="Back-test charts: on-time rate by fleet size and ETA error by planner" width="100%">
+<img src="docs/scatter.jpg" alt="Scatter of every planner on every January day: driver hours vs late minutes; Rotaist clusters next to the oracle in the top-left" width="100%">
 
 ### What the numbers say
+
+<img src="docs/results.jpg" alt="Three findings: ignoring traffic gives 83% on time; a smarter solver alone gives 98.6%; forecast plus optimiser saves 10-17% driver hours" width="100%">
 
 1. **Ignoring traffic is expensive.** A planner that uses free-flow speeds promises 100 % on time and
    delivers 83 %. Its ETAs are about half an hour optimistic on average.
@@ -87,6 +109,8 @@ more demand in the evening. Each row is the average over 22 January 2025 weekday
 forecast miss cost 280 late minutes (88 % on time). Without that day Rotaist averages 2 late minutes a
 day, against 9. A Monday forecast leans on Sunday as "yesterday", and that is the first thing to
 improve. A traffic forecast is still a forecast.
+
+<img src="docs/heat.jpg" alt="Heatmap of median street speed for every hour of every day, October 2024 to January 2025" width="100%">
 
 ### Day-ahead traffic forecast
 
