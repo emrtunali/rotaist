@@ -1,3 +1,7 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "rotaist"
 version = "1.0.0"
@@ -12,6 +16,9 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest>=8", "ruff>=0.5"]
+
+[tool.setuptools]
+packages = ["rotaist"]
 
 [tool.ruff]
 line-length = 120
