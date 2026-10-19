@@ -1,0 +1,74 @@
+:root {
+  --bg: #0b0f17; --panel: #111827ee; --line: #1f2937; --text: #e5e7eb; --muted: #94a3b8;
+  --accent: #38bdf8; --good: #22c55e; --bad: #ef4444; --warn: #f59e0b;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.5 Inter, system-ui, sans-serif; }
+a { color: var(--accent); text-decoration: none; }
+.mono { font-family: "JetBrains Mono", monospace; }
+.muted { color: var(--muted); }
+.small { font-size: 12px; }
+
+.top { position: sticky; top: 0; z-index: 10; display: flex; justify-content: space-between; align-items: center;
+  padding: 10px 20px; background: #0b0f17e6; backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
+.brand { font-weight: 700; font-size: 17px; }
+.logo { color: var(--accent); }
+.tag { font-weight: 400; color: var(--muted); font-size: 13px; margin-left: 8px; }
+nav a { margin-left: 18px; color: var(--muted); }
+nav a:hover { color: var(--text); }
+
+.stage { position: relative; height: calc(100vh - 50px); min-height: 560px; }
+#mapview { position: absolute; inset: 0; }
+.panel { position: absolute; top: 14px; left: 14px; width: 380px; max-height: calc(100% - 28px); overflow: auto;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px;
+  backdrop-filter: blur(6px); }
+.row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; }
+select, button { background: #0f172a; color: var(--text); border: 1px solid var(--line); border-radius: 6px;
+  padding: 4px 8px; font: inherit; }
+.plans { display: grid; gap: 6px; margin-bottom: 12px; }
+.plans button { text-align: left; padding: 8px 10px; cursor: pointer; }
+.plans button.on { border-color: var(--accent); background: #0c4a6e55; }
+.plans button small { display: block; color: var(--muted); }
+.clock { display: flex; gap: 10px; align-items: center; margin-bottom: 8px; }
+.clock input { flex: 1; accent-color: var(--accent); }
+#play { width: 36px; }
+#clock { font-size: 18px; min-width: 56px; }
+
+table.kpi { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 12.5px; }
+.kpi th, .kpi td { padding: 5px 4px; border-bottom: 1px solid var(--line); text-align: right; }
+.kpi th:first-child, .kpi td:first-child { text-align: left; }
+.kpi tr.on td { color: #fff; font-weight: 600; }
+.kpi .good { color: var(--good); } .kpi .bad { color: var(--bad); }
+.live { font-size: 12.5px; color: var(--muted); min-height: 38px; }
+.live b { color: var(--text); }
+.legend { display: flex; flex-wrap: wrap; gap: 10px; font-size: 12px; color: var(--muted); margin-top: 8px; }
+.legend i { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 4px; }
+.legend .grad b { display: inline-block; width: 60px; height: 8px; border-radius: 4px; vertical-align: middle;
+  background: linear-gradient(90deg, #1e293b, #f59e0b, #dc2626); margin: 0 4px; }
+
+.wrap { max-width: 1180px; margin: 0 auto; padding: 56px 20px; }
+h2 { font-size: 26px; margin: 0 0 10px; }
+.lead { color: var(--muted); max-width: 820px; }
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; margin: 22px 0; }
+.card { background: #111827; border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
+.card .big { font-size: 30px; font-weight: 700; }
+.card .big.good { color: var(--good); }
+.card small { color: var(--muted); }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(460px, 1fr)); gap: 18px; }
+figure { margin: 0; background: #111827; border: 1px solid var(--line); border-radius: 12px; padding: 14px; }
+figure canvas { width: 100% !important; height: 280px !important; }
+figcaption { color: var(--muted); font-size: 12.5px; margin-top: 8px; }
+.how ol { padding-left: 20px; max-width: 860px; }
+.how li { margin-bottom: 10px; }
+
+.maplibregl-popup-content { background: #111827; color: var(--text); border: 1px solid var(--line); font-size: 12.5px; }
+.maplibregl-popup-tip { display: none; }
+
+@media (max-width: 760px) {
+  .tag, nav a:not(:last-child) { display: none; }
+  .stage { height: auto; min-height: 0; display: flex; flex-direction: column; }
+  #mapview { position: relative; height: 62vh; }
+  .panel { position: static; width: auto; max-height: none; margin: 10px 16px; }
+  .grid { grid-template-columns: 1fr; }
+  .wrap { padding: 36px 16px; }
+}

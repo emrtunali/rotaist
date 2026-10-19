@@ -1,0 +1,26 @@
+[project]
+name = "rotaist"
+version = "1.0.0"
+description = "Traffic-aware last-mile delivery planning for Istanbul: day-ahead traffic forecasts + a time-dependent ALNS route optimiser."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+dependencies = [
+  "numpy>=1.26", "pandas>=2.1", "pyarrow>=14", "scipy>=1.11", "scikit-learn>=1.4", "numba>=0.59",
+  "networkx>=3.2", "osmnx>=2.0", "ortools>=9.10", "httpx>=0.27",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "ruff>=0.5"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+ignore = ["E702", "E731", "B905"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
